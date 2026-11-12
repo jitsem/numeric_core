@@ -1,7 +1,7 @@
 use std::env;
 use std::process;
 
-// Just write out all the permutations i.s.o doing it dynamically/
+// Just write out all the permutations i.s.o doing it dynamically
 // + is always first
 const PERMUTATIONS: [[char; 3]; 6] = [
     ['-', '*', '/'],
@@ -12,14 +12,15 @@ const PERMUTATIONS: [[char; 3]; 6] = [
     ['/', '*', '-'],
 ];
 
-// Returns None when dividing by zero, or when not a clean fraction.
-// I'm not 100% sure if that last one should be considered invalid when not in the last step
-fn apply(a: i64, op: char, b: i64) -> Option<i64> {
+// Returns None only when dividing by zero.
+// We return f64 since fraction should be posible in intermediate steps
+fn apply(a: f64, op: char, b: i64) -> Option<f64> {
+    let b = b as f64;
     match op {
         '-' => Some(a - b),
         '*' => Some(a * b),
         '/' => {
-            if b == 0 || a % b != 0 {
+            if b == 0.0 {
                 None
             } else {
                 Some(a / b)
@@ -75,14 +76,22 @@ fn main() {
     let mut best: Option<(i64, [char; 3])> = None;
 
     for ops in PERMUTATIONS.iter() {
-        let step1 = apply(nums[0], ops[0], nums[1]);
+        let step1 = apply(nums[0] as f64, ops[0], nums[1]);
         let step2 = step1.and_then(|v| apply(v, ops[1], nums[2]));
         let step3 = step2.and_then(|v| apply(v, ops[2], nums[3]));
 
         if let Some(result) = step3 {
+            // Little trick for checking whole number.
+            let whole = result.round();
+            if (result - whole).abs() > 1e-9 {
+                continue;
+            }
+
+            let whole = whole as i64;
+
             // Result must not be negative and lowest "wins"
-            if result >= 0 && (best.is_none() || result < best.unwrap().0) {
-                best = Some((result, *ops));
+            if whole >= 0 && (best.is_none() || whole < best.unwrap().0) {
+                best = Some((whole, *ops));
             }
         }
     }
